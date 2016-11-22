@@ -28,9 +28,7 @@ Code Coverage Options:
 Logging Options:
 
   --log-junit <file>          Log test execution in JUnit XML format to file.
-  --log-tap <file>            Log test execution in TAP format to file.
   --log-teamcity <file>       Log test execution in TeamCity format to file.
-  --log-json <file>           Log test execution in JSON format.
   --testdox-html <file>       Write agile documentation in HTML format to file.
   --testdox-text <file>       Write agile documentation in Text format to file.
   --testdox-xml <file>        Write agile documentation in XML format to file.
@@ -49,7 +47,7 @@ Test Selection Options:
 
 Test Execution Options:
 
-  --dont-report-useless-tests Be strict about tests that do not test anything.
+  --dont-report-useless-tests Do not report tests that do not test anything.
   --strict-coverage           Be strict about @covers annotation usage.
   --strict-global-state       Be strict about changes to global state
   --disallow-test-output      Be strict about output during tests.
@@ -78,7 +76,6 @@ Test Execution Options:
 
   --loader <loader>           TestSuiteLoader implementation to use.
   --repeat <times>            Runs the test(s) repeatedly.
-  --tap                       Report test execution progress in TAP format.
   --teamcity                  Report test execution progress in TeamCity format.
   --testdox                   Report test execution progress in TestDox format.
   --testdox-group             Only include tests from the specified group(s).

@@ -180,15 +180,15 @@ class PHPUnit_TextUI_TestRunner extends PHPUnit_Runner_BaseTestRunner
             $suite->setbeStrictAboutChangesToGlobalState(true);
         }
 
-        if (is_integer($arguments['repeat'])) {
-            $test = new PHPUnit_Extensions_RepeatedTest(
-                $suite,
-                $arguments['repeat'],
-                $arguments['processIsolation']
-            );
+        if (is_integer($arguments['repeat']) && $arguments['repeat'] > 0) {
+            $_suite = new PHPUnit_Framework_TestSuite;
 
-            $suite = new PHPUnit_Framework_TestSuite();
-            $suite->addTest($test);
+            foreach (range(1, $arguments['repeat']) as $step) {
+                $_suite->addTest($suite);
+            }
+
+            $suite = $_suite;
+            unset($_suite);
         }
 
         $result = $this->createTestResult();
@@ -261,31 +261,29 @@ class PHPUnit_TextUI_TestRunner extends PHPUnit_Runner_BaseTestRunner
             }
         }
 
-        if (!$this->printer instanceof PHPUnit_Util_Log_TAP) {
-            $this->printer->write(
-                PHPUnit_Runner_Version::getVersionString() . "\n"
-            );
+        $this->printer->write(
+            PHPUnit_Runner_Version::getVersionString() . "\n"
+        );
 
-            self::$versionStringPrinted = true;
+        self::$versionStringPrinted = true;
 
-            if ($arguments['verbose']) {
-                $runtime = $this->runtime->getNameWithVersion();
+        if ($arguments['verbose']) {
+            $runtime = $this->runtime->getNameWithVersion();
 
-                if ($this->runtime->hasXdebug()) {
-                    $runtime .= sprintf(
-                        ' with Xdebug %s',
-                        phpversion('xdebug')
-                    );
-                }
+            if ($this->runtime->hasXdebug()) {
+                $runtime .= sprintf(
+                    ' with Xdebug %s',
+                    phpversion('xdebug')
+                );
+            }
 
-                $this->writeMessage('Runtime', $runtime);
+            $this->writeMessage('Runtime', $runtime);
 
-                if (isset($arguments['configuration'])) {
-                    $this->writeMessage(
-                        'Configuration',
-                        $arguments['configuration']->getFilename()
-                    );
-                }
+            if (isset($arguments['configuration'])) {
+                $this->writeMessage(
+                    'Configuration',
+                    $arguments['configuration']->getFilename()
+                );
             }
         }
 
@@ -365,9 +363,7 @@ class PHPUnit_TextUI_TestRunner extends PHPUnit_Runner_BaseTestRunner
             }
         }
 
-        if (!$this->printer instanceof PHPUnit_Util_Log_TAP) {
-            $this->printer->write("\n");
-        }
+        $this->printer->write("\n");
 
         if ($codeCoverageReports > 0) {
             $codeCoverage = new CodeCoverage(
@@ -416,18 +412,6 @@ class PHPUnit_TextUI_TestRunner extends PHPUnit_Runner_BaseTestRunner
             if (isset($arguments['cacheTokens'])) {
                 $codeCoverage->setCacheTokens($arguments['cacheTokens']);
             }
-        }
-
-        if (isset($arguments['jsonLogfile'])) {
-            $result->addListener(
-                new PHPUnit_Util_Log_JSON($arguments['jsonLogfile'])
-            );
-        }
-
-        if (isset($arguments['tapLogfile'])) {
-            $result->addListener(
-                new PHPUnit_Util_Log_TAP($arguments['tapLogfile'])
-            );
         }
 
         if (isset($arguments['teamcityLogfile'])) {
@@ -874,22 +858,35 @@ class PHPUnit_TextUI_TestRunner extends PHPUnit_Runner_BaseTestRunner
                     require_once $listener['file'];
                 }
 
-                if (class_exists($listener['class'])) {
-                    if (count($listener['arguments']) == 0) {
-                        $listener = new $listener['class'];
-                    } else {
-                        $listenerClass = new ReflectionClass(
+                if (!class_exists($listener['class'])) {
+                    throw new PHPUnit_Framework_Exception(
+                        sprintf(
+                            'Class "%s" does not exist',
                             $listener['class']
-                        );
-                        $listener      = $listenerClass->newInstanceArgs(
-                            $listener['arguments']
-                        );
-                    }
-
-                    if ($listener instanceof PHPUnit_Framework_TestListener) {
-                        $arguments['listeners'][] = $listener;
-                    }
+                        )
+                    );
                 }
+
+                $listenerClass = new ReflectionClass($listener['class']);
+
+                if (!$listenerClass->implementsInterface(PHPUnit_Framework_TestListener::class)) {
+                    throw new PHPUnit_Framework_Exception(
+                        sprintf(
+                            'Class "%s" does not implement the PHPUnit_Framework_TestListener interface',
+                            $listener['class']
+                        )
+                    );
+                }
+
+                if (count($listener['arguments']) == 0) {
+                    $listener = new $listener['class'];
+                } else {
+                    $listener = $listenerClass->newInstanceArgs(
+                        $listener['arguments']
+                    );
+                }
+
+                $arguments['listeners'][] = $listener;
             }
 
             $loggingConfiguration = $arguments['configuration']->getLoggingConfiguration();
@@ -949,21 +946,11 @@ class PHPUnit_TextUI_TestRunner extends PHPUnit_Runner_BaseTestRunner
                 $arguments['coverageXml'] = $loggingConfiguration['coverage-xml'];
             }
 
-            if (isset($loggingConfiguration['json']) &&
-                !isset($arguments['jsonLogfile'])) {
-                $arguments['jsonLogfile'] = $loggingConfiguration['json'];
-            }
-
             if (isset($loggingConfiguration['plain'])) {
                 $arguments['listeners'][] = new PHPUnit_TextUI_ResultPrinter(
                     $loggingConfiguration['plain'],
                     true
                 );
-            }
-
-            if (isset($loggingConfiguration['tap']) &&
-                !isset($arguments['tapLogfile'])) {
-                $arguments['tapLogfile'] = $loggingConfiguration['tap'];
             }
 
             if (isset($loggingConfiguration['teamcity']) &&

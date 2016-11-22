@@ -753,7 +753,7 @@ abstract class PHPUnit_Framework_TestCase extends PHPUnit_Framework_Assert imple
 
         if ($this->runTestInSeparateProcess === true &&
             $this->inIsolation !== true &&
-            !$this instanceof PHPUnit_Extensions_PhptTestCase) {
+            !$this instanceof PHPUnit_Runner_PhptTestCase) {
             $class = new ReflectionClass($this);
 
             $template = new Text_Template(
@@ -2014,6 +2014,17 @@ abstract class PHPUnit_Framework_TestCase extends PHPUnit_Framework_Assert imple
         return $buffer;
     }
 
+
+    /**
+     * Gets the data set of a TestCase.
+     *
+     * @return array
+     */
+    protected function getProvidedData()
+    {
+        return $this->data;
+    }
+
     /**
      * Creates a default TestResult object.
      *
@@ -2204,7 +2215,7 @@ abstract class PHPUnit_Framework_TestCase extends PHPUnit_Framework_Assert imple
      *
      * @return PHPUnit_Framework_MockObject_Generator
      */
-    protected function getMockObjectGenerator()
+    private function getMockObjectGenerator()
     {
         if (null === $this->mockObjectGenerator) {
             $this->mockObjectGenerator = new PHPUnit_Framework_MockObject_Generator;
@@ -2218,10 +2229,6 @@ abstract class PHPUnit_Framework_TestCase extends PHPUnit_Framework_Assert imple
      */
     private function startOutputBuffering()
     {
-        while (!defined('PHPUNIT_TESTSUITE') && ob_get_level() > 0) {
-            ob_end_clean();
-        }
-
         ob_start();
 
         $this->outputBufferingActive = true;
@@ -2234,7 +2241,7 @@ abstract class PHPUnit_Framework_TestCase extends PHPUnit_Framework_Assert imple
     private function stopOutputBuffering()
     {
         if (ob_get_level() != $this->outputBufferingLevel) {
-            while (ob_get_level() > 0) {
+            while (ob_get_level() >= $this->outputBufferingLevel) {
                 ob_end_clean();
             }
 
@@ -2472,7 +2479,7 @@ abstract class PHPUnit_Framework_TestCase extends PHPUnit_Framework_Assert imple
         } else {
             foreach ($testArguments as $testArgument) {
                 if ($testArgument instanceof PHPUnit_Framework_MockObject_MockObject) {
-                    $this->registerMockObject($testArgument);
+                    $this->registerMockObject(clone $testArgument);
                 } elseif (is_array($testArgument)) {
                     $this->registerMockObjectsFromTestArguments($testArgument);
                 }
